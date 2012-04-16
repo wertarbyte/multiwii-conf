@@ -227,15 +227,18 @@ void setup() {
     checkbox1[i].setColorActive(color(255));checkbox1[i].setColorBackground(color(120));
     checkbox1[i].setItemsPerRow(6);checkbox1[i].setSpacingColumn(10);
     checkbox1[i].setLabel("");
-    hideLabel(checkbox1[i].addItem(i + "1",1));hideLabel(checkbox1[i].addItem(i + "2",2));hideLabel(checkbox1[i].addItem(i + "3",3));
-    hideLabel(checkbox1[i].addItem(i + "4",4));hideLabel(checkbox1[i].addItem(i + "5",5));hideLabel(checkbox1[i].addItem(i + "6",6));
 
     checkbox2[i] =  controlP5.addCheckBox("cb_"+i,xBox+170,yBox+20+13*i);
     checkbox2[i].setColorActive(color(255));checkbox2[i].setColorBackground(color(120));
     checkbox2[i].setItemsPerRow(6);checkbox2[i].setSpacingColumn(10);
     checkbox2[i].setLabel("");
-    hideLabel(checkbox2[i].addItem(i + "1_",1));hideLabel(checkbox2[i].addItem(i + "2_",2));hideLabel(checkbox2[i].addItem(i + "3_",3));
-    hideLabel(checkbox2[i].addItem(i + "4_",4));hideLabel(checkbox2[i].addItem(i + "5_",5));hideLabel(checkbox2[i].addItem(i + "6_",6));
+
+    for (int j=1; j<=6; j++) {
+      checkbox1[i].addItem(i + "_cb1_" + j, j);
+      checkbox2[i].addItem(i + "_cb2_" + j, j);
+    }
+    checkbox1[i].hideLabels();
+    checkbox2[i].hideLabels();
   }
   
   buttonREAD =      controlP5.addButton("READ",1,xParam+5,yParam+260,50,16);buttonREAD.setColorBackground(red_);
