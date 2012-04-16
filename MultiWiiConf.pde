@@ -651,7 +651,7 @@ void draw() {
 
   text(GPS_altitude,530,260);
   text(GPS_latitude,530,275);
-  text(GPS_latitude,530,290);
+  text(GPS_longitude,530,290);
   text(GPS_speed,530,305);
   text(GPS_numSat,530,320);
   text(GPS_distanceToHome,630,260);
