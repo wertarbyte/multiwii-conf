@@ -344,13 +344,12 @@ void requestMSP(int msp) {
   g_serial.write(byte(msp & 0xFF));
 }
 
-String requestMSP(int[] msps) {
-
+void requestMSP(int[] msps) {
  StringBuffer bf = new StringBuffer();
   for (int m : msps) {
     bf.append("$M<").append((char)m);
   }
-  return bf.toString();
+  g_serial.write(bf.toString());
 }
 
 void drawMotor(float x1, float y1, int mot_num, char dir) {   //Code by Danal
@@ -383,7 +382,7 @@ void draw() {
     if ((time-time2)>50) {
       time2=time;
       int[] requests = {MSP_IDENT, MSP_MOTOR_PINS, MSP_STATUS, MSP_RAW_IMU, MSP_SERVO, MSP_MOTOR, MSP_RC, MSP_RAW_GPS, MSP_COMP_GPS, MSP_ALTITUDE, MSP_BAT, MSP_DEBUG};
-      g_serial.write(requestMSP(requests));
+      requestMSP(requests);
       
       accROLL.addVal(ax);accPITCH.addVal(ay);accYAW.addVal(az);gyroROLL.addVal(gx);gyroPITCH.addVal(gy);gyroYAW.addVal(gz);
       magxData.addVal(magx);magyData.addVal(magy);magzData.addVal(magz);
@@ -402,7 +401,7 @@ void draw() {
     if (toggleRead) {
       toggleRead=false;
       int[] requests = {MSP_RC_TUNING, MSP_PID, MSP_BOX, MSP_MISC};
-      g_serial.write(requestMSP(requests));
+      requestMSP(requests);
       buttonWRITE.setColorBackground(green_);
     }
     if (toggleCalibAcc) {
