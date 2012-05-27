@@ -2,7 +2,13 @@ import processing.serial.Serial; // serial library
 import controlP5.*; // controlP5 library
 import processing.opengl.*;
 import java.lang.StringBuffer;
+import javax.swing.*;
+import javax.swing.SwingUtilities;
+//import java.awt.event.*;
+import javax.swing.filechooser.FileFilter;
 
+
+  
 Serial g_serial;
 ControlP5 controlP5;
 Textlabel txtlblWhichcom; 
@@ -54,7 +60,7 @@ Slider axSlider,aySlider,azSlider,gxSlider,gySlider,gzSlider , magxSlider,magySl
 
 Slider scaleSlider;
 
-Button buttonREAD,buttonRESET,buttonWRITE,buttonCALIBRATE_ACC,buttonCALIBRATE_MAG,buttonSTART,buttonSTOP,
+Button buttonIMPORT,buttonSAVE,buttonREAD,buttonRESET,buttonWRITE,buttonCALIBRATE_ACC,buttonCALIBRATE_MAG,buttonSTART,buttonSTOP,
        buttonAcc,buttonBaro,buttonMag,buttonGPS,buttonSonar,buttonOptic;
 
 Toggle tACC_ROLL, tACC_PITCH, tACC_Z, tGYRO_ROLL, tGYRO_PITCH, tGYRO_YAW, tBARO,tHEAD, tMAGX, tMAGY, tMAGZ, 
@@ -115,7 +121,7 @@ void setup() {
   controlP5.setControlFont(font12);
 
   g_graph  = new cGraph(xGraph+110,yGraph, 480, 200);
-  commListbox = controlP5.addListBox("portComList",5,65,110,240); // make a listbox and populate it with the available comm ports
+  commListbox = controlP5.addListBox("portComList",5,95,110,240); // make a listbox and populate it with the available comm ports
 
   commListbox.captionLabel().set("PORT COM");
   commListbox.setColorBackground(red_);
@@ -126,7 +132,12 @@ void setup() {
   }
   commListbox.addItem("Close Comm",++commListMax); // addItem(name,value)
   // text label for which comm port selected
-  txtlblWhichcom = controlP5.addTextlabel("txtlblWhichcom","No Port Selected",5,42); // textlabel(name,text,x,y)
+  txtlblWhichcom = controlP5.addTextlabel("txtlblWhichcom","No Port Selected",5,65); // textlabel(name,text,x,y)
+  
+  buttonSAVE = controlP5.addButton("bSAVE",1,5,45,40,19); buttonSAVE.setLabel("EXPORT"); buttonSAVE.setColorBackground(red_);
+  
+  buttonIMPORT = controlP5.addButton("bIMPORT",1,50,45,40,19); buttonIMPORT.setLabel("IMPORT"); buttonIMPORT.setColorBackground(red_);
+  
     
   buttonSTART = controlP5.addButton("bSTART",1,xGraph+110,yGraph-25,40,19); buttonSTART.setLabel("START"); buttonSTART.setColorBackground(red_);
   buttonSTOP = controlP5.addButton("bSTOP",1,xGraph+160,yGraph-25,40,19); buttonSTOP.setLabel("STOP"); buttonSTOP.setColorBackground(red_);
@@ -463,22 +474,21 @@ void draw() {
       
       // MSP_SET_RC_TUNING
       payload = new ArrayList<Character>();
-      payload.add(char( round(confRC_RATE.value()*100)) ); 
-      payload.add(char( round(confRC_EXPO.value()*100)) );
-      payload.add(char( round(rollPitchRate.value()*100)) );
-      payload.add(char( round(yawRate.value()*100)) );
-      payload.add(char( round(dynamic_THR_PID.value()*100)) );
-      payload.add(char( round(throttle_MID.value()*100)) );
-      payload.add(char( round(throttle_EXPO.value()*100)) );
+      payload.add(char( round(confRC_RATE.value()*100)) );    MWI.setProperty("rc.rate",String.valueOf(confRC_RATE.value()));
+      payload.add(char( round(confRC_EXPO.value()*100)) );    MWI.setProperty("rc.expo",String.valueOf(confRC_EXPO.value()));
+      payload.add(char( round(rollPitchRate.value()*100)) );  MWI.setProperty("rc.rollpitch.rate",String.valueOf(rollPitchRate.value()));
+      payload.add(char( round(yawRate.value()*100)) );        MWI.setProperty("rc.yaw.rate",String.valueOf(yawRate.value()));
+      payload.add(char( round(dynamic_THR_PID.value()*100)) );  MWI.setProperty("rc.throttle.rate",String.valueOf(dynamic_THR_PID.value()));
+      payload.add(char( round(throttle_MID.value()*100)) );   MWI.setProperty("rc.throttle.mid",String.valueOf(throttle_MID.value()));
+      payload.add(char( round(throttle_EXPO.value()*100)) );  MWI.setProperty("rc.throttle.expo",String.valueOf(throttle_EXPO.value()));
       requestMSP(MSP_SET_RC_TUNING,payload.toArray( new Character[payload.size()]) );
 
-      
       // MSP_SET_PID
       payload = new ArrayList<Character>();
       for(i=0;i<PIDITEMS;i++) {
-        byteP[i] = (round(confP[i].value()*10));
-        byteI[i] = (round(confI[i].value()*1000));
-        byteD[i] = (round(confD[i].value()));
+        byteP[i] = (round(confP[i].value()*10)); MWI.setProperty("pid."+i+".p",String.valueOf(confP[i].value()));
+        byteI[i] = (round(confI[i].value()*1000)); MWI.setProperty("pid."+i+".i",String.valueOf(confI[i].value()));
+        byteD[i] = (round(confD[i].value())); MWI.setProperty("pid."+i+".d",String.valueOf(confD[i].value()));
       }
 
       //POS-4 POSR-5 NAVR-6 use different dividers
@@ -494,9 +504,9 @@ void draw() {
       byteD[6] = (round(confD[6].value()*10000.0))/10;
 
       for(i=0;i<PIDITEMS;i++) {
-    	  payload.add(char(byteP[i]));
-    	  payload.add(char(byteI[i]));
-    	  payload.add(char(byteD[i]));
+    	  payload.add(char(byteP[i]));  
+    	  payload.add(char(byteI[i]));  
+    	  payload.add(char(byteD[i])); 
       }
       requestMSP(MSP_SET_PID,payload.toArray(new Character[payload.size()]));
         
@@ -507,7 +517,9 @@ void draw() {
         activation[i] = 0;
         for(aa=0;aa<6;aa++) {
           activation[i] += (int)(checkbox1[i].arrayValue()[aa]*(1<<aa)) + (int)(checkbox2[i].arrayValue()[aa]*(1<<(aa+6)));
-        }
+            MWI.setProperty("box."+i+".aux"+i/3+"."+(aa%3),String.valueOf(checkbox1[i].arrayValue()[aa]*(1<<aa)));
+            MWI.setProperty("box."+i+".aux"+(1+i/3)+"."+(aa%3),String.valueOf(checkbox2[i].arrayValue()[aa]*(1<<aa)));
+     }
         payload.add(char (activation[i] % 256) );
         payload.add(char (activation[i] / 256)  );
       }
@@ -520,7 +532,7 @@ void draw() {
  
       payload.add(char(intPowerTrigger % 256));
       payload.add(char(intPowerTrigger / 256));
-    
+      MWI.setProperty("power.trigger",String.valueOf(intPowerTrigger));
       requestMSP(MSP_SET_MISC,payload.toArray(new Character[payload.size()]));
       
       // MSP_EEPROM_WRITE
@@ -1293,10 +1305,119 @@ void InitSerial(float portValue) {
   }
 }
 
+public void bSAVE() {
+
+  SwingUtilities.invokeLater(new Runnable(){
+    public void run(){
+      final JFileChooser fc = new JFileChooser();
+      fc.setDialogType(JFileChooser.SAVE_DIALOG);
+      fc.setFileFilter(new MwiFileFilter());
+       int returnVal = fc.showOpenDialog(null);
+
+        if (returnVal == JFileChooser.APPROVE_OPTION) {
+            File file = fc.getSelectedFile();
+            System.out.println(file.toURI());
+            try{
+            FileOutputStream out = new FileOutputStream(file) ;
+            MWI.conf.storeToXML(out, new Date().toString()); 
+            out.close();
+            out = null;
+            file=null;
+            }catch(FileNotFoundException e){
+            
+            }catch(IOException e1){
+              e1.printStackTrace();
+            }
+            
+        }
+      
+    }});
+  
+}
+
+public void bIMPORT(){
+  
+  SwingUtilities.invokeLater(new Runnable(){
+    public void run(){
+      final JFileChooser fc = new JFileChooser();
+      fc.setDialogType(JFileChooser.SAVE_DIALOG);
+      fc.setFileFilter(new MwiFileFilter());
+       int returnVal = fc.showOpenDialog(null);
+
+        if (returnVal == JFileChooser.APPROVE_OPTION) {
+            File file = fc.getSelectedFile();
+            System.out.println(file.toURI());
+            try{
+            FileInputStream in = new FileInputStream(file) ;
+            MWI.conf.loadFromXML(in); 
+            in.close();
+            in = null;
+            file=null;
+            confUpdateValue();
+            }catch(FileNotFoundException e){
+            
+            }catch(IOException e1){
+              e1.printStackTrace();
+            }
+            
+        }
+      
+    }});
+}
+
+public   void confUpdateValue(){
+ 
+  // MSP_SET_RC_TUNING
+   confRC_RATE.setValue(Float.valueOf(MWI.conf.getProperty("rc.rate")));
+   confRC_EXPO.setValue(Float.valueOf(MWI.conf.getProperty("rc.expo")));
+   rollPitchRate.setValue(Float.valueOf(MWI.conf.getProperty("rc.rollpitch.rate")));
+   yawRate.setValue(Float.valueOf(MWI.conf.getProperty("rc.yaw.rate")));
+   dynamic_THR_PID.setValue(Float.valueOf(MWI.conf.getProperty("rc.throttle.rate")));
+   throttle_MID.setValue(Float.valueOf(MWI.conf.getProperty("rc.throttle.mid")));
+   throttle_EXPO.setValue(Float.valueOf(MWI.conf.getProperty("rc.throttle.expo")));
+  
+  // MSP_SET_PID
+  for(int i=0;i<PIDITEMS;i++) {
+     byteP[i] = round(Float.valueOf(MWI.conf.getProperty("pid."+i+".p")) );
+     byteI[i] = round(Float.valueOf(MWI.conf.getProperty("pid."+i+".i")) );
+     byteD[i] = round(Float.valueOf(MWI.conf.getProperty("pid."+i+".d")) );
+  }
+
+             
+                
+      for(int i=0;i<CHECKBOXITEMS;i++) {
+        activation[i] = 0;
+        for(int aa=0;aa<6;aa++) {
+          activation[i] += (int)(checkbox1[i].arrayValue()[aa]*(1<<aa)) + (int)(checkbox2[i].arrayValue()[aa]*(1<<(aa+6)));
+            if (Float.valueOf(MWI.conf.getProperty("box."+i+".aux"+i/3+"."+(aa%3)))>0) checkbox1[i].activate(aa); else checkbox1[i].deactivate(aa);
+            if (Float.valueOf(MWI.conf.getProperty("box."+i+".aux"+(1+i/3)+"."+(aa%3)))>0) checkbox2[i].activate(aa); else checkbox2[i].deactivate(aa);
+     }
+    }
+      
+        
+      // MSP_SET_MISC
+
+      confPowerTrigger.setValue(Float.valueOf(MWI.conf.getProperty("power.trigger")));
+ }
+      
+
 //********************************************************
 //********************************************************
 //********************************************************
 
+static class MWI{
+private static Properties conf = new Properties();
+
+
+public static void setProperty(String key ,String value ){
+conf.setProperty( key,value );
+}
+
+public static String getProperty(String key ){
+ return conf.getProperty( key,"0");
+}
+
+}
 class cDataArray {
   float[] m_data;
   int m_maxSize, m_startIndex = 0, m_endIndex = 0, m_curSize;
@@ -1359,4 +1480,35 @@ class cGraph {
       line(x0, y0, x1, y1);
     }
   }
+}
+
+
+public class MwiFileFilter extends FileFilter {
+
+    public boolean accept(File f) {
+	if(f != null) {
+	    if(f.isDirectory()) {
+		return true;
+	    }
+	    String extension = getExtension(f);
+	    if("mwi".equals(extension)) {
+		return true;
+	    };
+	}
+	return false;
+    }
+
+ public String getExtension(File f) {
+	if(f != null) {
+	    String filename = f.getName();
+	    int i = filename.lastIndexOf('.');
+	    if(i>0 && i<filename.length()-1) {
+		return filename.substring(i+1).toLowerCase();
+	    };
+	}
+	return null;
+    }
+  
+public String getDescription() {return "*.mwi Multiwii configuration file";}   
+
 }
