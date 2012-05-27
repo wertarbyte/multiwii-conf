@@ -1,4 +1,4 @@
-import processing.serial.*; // serial library
+import processing.serial.Serial; // serial library
 import controlP5.*; // controlP5 library
 import processing.opengl.*;
 import java.lang.StringBuffer;
@@ -8,8 +8,8 @@ ControlP5 controlP5;
 Textlabel txtlblWhichcom; 
 ListBox commListbox;
 
-int CHECKBOXITEMS=11;
-int PIDITEMS=9;
+static int CHECKBOXITEMS=11;
+static int PIDITEMS=9;
 int commListMax;
 
 cGraph g_graph;
@@ -201,7 +201,7 @@ void setup() {
   debug3Slider  =    controlP5.addSlider("debug3Slider",-32000,+32000,0,x+370,y6,50,10);debug3Slider.setDecimalPrecision(0);debug3Slider.setLabel("");
   debug4Slider  =    controlP5.addSlider("debug4Slider",-32000,+32000,0,x+490,y6,50,10);debug4Slider.setDecimalPrecision(0);debug4Slider.setLabel("");
 
-  for(int i=0;i<9;i++) {
+  for(int i=0;i<PIDITEMS;i++) {
     confP[i] = (controlP5.Numberbox) hideLabel(controlP5.addNumberbox("confP"+i,0,xParam+40,yParam+20+i*17,30,14));
     confP[i].setColorBackground(red_);confP[i].setMin(0);confP[i].setDirection(Controller.HORIZONTAL);confP[i].setDecimalPrecision(1);confP[i].setMultiplier(0.1);confP[i].setMax(20);
     confI[i] = (controlP5.Numberbox) hideLabel(controlP5.addNumberbox("confI"+i,0,xParam+75,yParam+20+i*17,40,14));
@@ -248,22 +248,22 @@ void setup() {
     checkbox1[i].setColorActive(color(255));checkbox1[i].setColorBackground(color(120));
     checkbox1[i].setItemsPerRow(6);checkbox1[i].setSpacingColumn(10);
     checkbox1[i].setLabel("");
-    hideLabel(checkbox1[i].addItem(i + "1",1));hideLabel(checkbox1[i].addItem(i + "2",2));hideLabel(checkbox1[i].addItem(i + "3",3));
-    hideLabel(checkbox1[i].addItem(i + "4",4));hideLabel(checkbox1[i].addItem(i + "5",5));hideLabel(checkbox1[i].addItem(i + "6",6));
+  //  hideLabel(checkbox1[i].addItem(i + "1",1));hideLabel(checkbox1[i].addItem(i + "2",2));hideLabel(checkbox1[i].addItem(i + "3",3));
+  //  hideLabel(checkbox1[i].addItem(i + "4",4));hideLabel(checkbox1[i].addItem(i + "5",5));hideLabel(checkbox1[i].addItem(i + "6",6));
 
     checkbox2[i] =  controlP5.addCheckBox("cb_"+i,xBox+170,yBox+20+13*i);
     checkbox2[i].setColorActive(color(255));checkbox2[i].setColorBackground(color(120));
     checkbox2[i].setItemsPerRow(6);checkbox2[i].setSpacingColumn(10);
     checkbox2[i].setLabel("");
-    hideLabel(checkbox2[i].addItem(i + "1_",1));hideLabel(checkbox2[i].addItem(i + "2_",2));hideLabel(checkbox2[i].addItem(i + "3_",3));
-    hideLabel(checkbox2[i].addItem(i + "4_",4));hideLabel(checkbox2[i].addItem(i + "5_",5));hideLabel(checkbox2[i].addItem(i + "6_",6));
-/*
+   // hideLabel(checkbox2[i].addItem(i + "1_",1));hideLabel(checkbox2[i].addItem(i + "2_",2));hideLabel(checkbox2[i].addItem(i + "3_",3));
+   // hideLabel(checkbox2[i].addItem(i + "4_",4));hideLabel(checkbox2[i].addItem(i + "5_",5));hideLabel(checkbox2[i].addItem(i + "6_",6));
+
     for (int j=1; j<=6; j++) {
       checkbox1[i].addItem(i + "_cb1_" + j, j);
       checkbox2[i].addItem(i + "_cb2_" + j, j);
     }
     checkbox1[i].hideLabels();	
-    checkbox2[i].hideLabels();*/
+    checkbox2[i].hideLabels();
   }
   
   buttonREAD =          controlP5.addButton("READ",1,xParam+5,yParam+260,50,16);buttonREAD.setColorBackground(red_);
@@ -293,6 +293,8 @@ void setup() {
   confPowerTrigger.setDirection(Controller.HORIZONTAL);confPowerTrigger.setMin(0);confPowerTrigger.setMax(65535);confPowerTrigger.setColorBackground(red_);
 }
 
+
+private static final String MSP_HEADER = "$M<";
 
 private static final int
   MSP_IDENT                =100,
@@ -331,18 +333,10 @@ private static final int
 int time,time2,time3;
 
 byte checksum=0;
-int stateMSP=0,offset=0,dataSize=0,indTX=0;
-byte[] inBuf   = new byte[128],
-       outBuf_ = new byte[128];
+int stateMSP=0,offset=0,dataSize=0;
+byte[] inBuf   = new byte[128];
 
-void serialize16(int a) {
-  byte t;
-  t = byte(a);            outBuf_[indTX++] = t ; checksum ^= t;
-  t = byte((a>>8)&0xff);  outBuf_[indTX++] = t ; checksum ^= t;
-}
-void serialize8(int a)  {
-  outBuf_[indTX++]  = byte(a); checksum ^= a;
-}
+
 
 int p;
 int read32() {return (inBuf[p++]&0xff) + ((inBuf[p++]&0xff)<<8) + ((inBuf[p++]&0xff)<<16) + ((inBuf[p++]&0xff)<<24); }
@@ -352,20 +346,59 @@ int read8()  {return inBuf[p++]&0xff;}
 int mode;
 boolean toggleRead = false,toggleReset = false,toggleCalibAcc = false,toggleCalibMag = false,toggleWrite = false;
 
+// send msp without payload 
 void requestMSP(int msp) {
-  StringBuffer bf = new StringBuffer();
-  bf.append("$M<").append((char)(msp & 0xFF));
-  g_serial.write(bf.toString());
+	requestMSP( msp, null);
 }
 
+//send multiple msp without payload 
 void requestMSP(int[] msps) {
   StringBuffer bf = new StringBuffer();
   for (int m : msps) {
-    bf.append("$M<").append((char)(m & 0xFF));
+    bf.append(MSP_HEADER).append(char(m));
   }
-  g_serial.write(bf.toString());
+  sendRequestMSP(bf.toString());
 }
 
+//send msp with payload 
+void requestMSP(int msp, Character[] payload) {
+  if(msp < 0) {
+    return; 
+  }
+  StringBuffer bf = new StringBuffer().append(MSP_HEADER);
+  
+  if (payload != null){
+    bf.append(char(payload.length)).append(char(msp)); 
+    byte checksum=0;
+    for (char c :payload){
+      bf.append(c);
+      checksum ^= int(c);
+    }
+    bf.append(char(int(checksum)));
+  }else{
+    bf.append(char(msp));
+  }
+ 
+  sendRequestMSP(bf.toString());	
+}
+
+void sendRequestMSP(String msp){
+  try{
+    g_serial.write(msp.getBytes("ISO-8859-1"));
+  }catch(UnsupportedEncodingException a){
+    // Everything from 0x0000 through 0x007F are exactly the same as ASCII. 
+    // Everything from 0x0000 through 0x00FF is the same as ISO Latin 1. 
+    try{
+      a.printStackTrace();  
+      g_serial.write(msp.getBytes("ASCII"));
+      }catch(UnsupportedEncodingException a1){
+        // or try without suitable charset -> unpredictable result bad
+	// g_serial.write(bf.toString()) 
+        throw new RuntimeException("ASCII encoding is required for serial communication",a1);
+      }
+   }
+}
+	
 void drawMotor(float x1, float y1, int mot_num, char dir) {   //Code by Danal
   float size = 30.0;
   pushStyle();
@@ -385,9 +418,8 @@ void drawMotor(float x1, float y1, int mot_num, char dir) {   //Code by Danal
   popStyle();
 }
 
-
-
 void draw() {
+  List<Character> payload;
   int i,present=0,aa;
   float val,inter,a,b,h;
   int c;
@@ -428,23 +460,21 @@ void draw() {
     }
     if (toggleWrite) {
       toggleWrite=false;
+      
+      // MSP_SET_RC_TUNING
+      payload = new ArrayList<Character>();
+      payload.add(char( round(confRC_RATE.value()*100)) ); 
+      payload.add(char( round(confRC_EXPO.value()*100)) );
+      payload.add(char( round(rollPitchRate.value()*100)) );
+      payload.add(char( round(yawRate.value()*100)) );
+      payload.add(char( round(dynamic_THR_PID.value()*100)) );
+      payload.add(char( round(throttle_MID.value()*100)) );
+      payload.add(char( round(throttle_EXPO.value()*100)) );
+      requestMSP(MSP_SET_RC_TUNING,payload.toArray( new Character[payload.size()]) );
 
-      byteRC_RATE       = (round(confRC_RATE.value()*100));
-      byteRC_EXPO       = (round(confRC_EXPO.value()*100));
-      byteRollPitchRate = (round(rollPitchRate.value()*100));
-      byteYawRate       = (round(yawRate.value()*100));
-      byteDynThrPID     = (round(dynamic_THR_PID.value()*100));
-      byteThrottle_MID   = (round(throttle_MID.value()*100));
-      byteThrottle_EXPO  = (round(throttle_EXPO.value()*100));
-      indTX=0;
-      serialize8('$');serialize8('M');serialize8('<');serialize8(7);serialize8(MSP_SET_RC_TUNING);
-      checksum=0;
-      serialize8(byteRC_RATE);serialize8(byteRC_EXPO);serialize8(byteRollPitchRate);
-      serialize8(byteYawRate);serialize8(byteDynThrPID);
-      serialize8(byteThrottle_MID);serialize8(byteThrottle_EXPO);
-      serialize8(checksum);
-      for(i=0;i<indTX;i++) {g_serial.write(char(outBuf_[i]));}
-
+      
+      // MSP_SET_PID
+      payload = new ArrayList<Character>();
       for(i=0;i<PIDITEMS;i++) {
         byteP[i] = (round(confP[i].value()*10));
         byteI[i] = (round(confI[i].value()*1000));
@@ -452,49 +482,49 @@ void draw() {
       }
 
       //POS-4 POSR-5 NAVR-6 use different dividers
-        byteP[4] = (round(confP[4].value()*100.0));
-        byteI[4] = (round(confI[4].value()*100.0));
-      
-        byteP[5] = (round(confP[5].value()*10.0));
-        byteI[5] = (round(confI[5].value()*100.0));
-        byteD[5] = (round(confD[5].value()*10000.0))/10;
+      byteP[4] = (round(confP[4].value()*100.0));
+      byteI[4] = (round(confI[4].value()*100.0));
+
+      byteP[5] = (round(confP[5].value()*10.0));
+      byteI[5] = (round(confI[5].value()*100.0));
+      byteD[5] = (round(confD[5].value()*10000.0))/10;
+
+      byteP[6] = (round(confP[6].value()*10.0));
+      byteI[6] = (round(confI[6].value()*100.0));
+      byteD[6] = (round(confD[6].value()*10000.0))/10;
+
+      for(i=0;i<PIDITEMS;i++) {
+    	  payload.add(char(byteP[i]));
+    	  payload.add(char(byteI[i]));
+    	  payload.add(char(byteD[i]));
+      }
+      requestMSP(MSP_SET_PID,payload.toArray(new Character[payload.size()]));
         
-        byteP[6] = (round(confP[6].value()*10.0));
-        byteI[6] = (round(confI[6].value()*100.0));
-        byteD[6] = (round(confD[6].value()*10000.0))/10;
 
-
-      indTX=0;
-      serialize8('$');serialize8('M');serialize8('<');serialize8(3*PIDITEMS);serialize8(MSP_SET_PID);
-      checksum=0;
-      for(i=0;i<PIDITEMS;i++) {serialize8(byteP[i]);serialize8(byteI[i]);serialize8(byteD[i]);}
-      serialize8(checksum);
-      for(i=0;i<indTX;i++) {g_serial.write(char(outBuf_[i]));}
-
+      // MSP_SET_BOX
+      payload = new ArrayList<Character>();
       for(i=0;i<CHECKBOXITEMS;i++) {
         activation[i] = 0;
         for(aa=0;aa<6;aa++) {
           activation[i] += (int)(checkbox1[i].arrayValue()[aa]*(1<<aa)) + (int)(checkbox2[i].arrayValue()[aa]*(1<<(aa+6)));
         }
+        payload.add(char (activation[i] % 256) );
+        payload.add(char (activation[i] / 256)  );
       }
-      indTX=0;
-      serialize8('$');serialize8('M');serialize8('<');serialize8(2*CHECKBOXITEMS);serialize8(MSP_SET_BOX);
-      checksum=0;
-      for(i=0;i<CHECKBOXITEMS;i++) {serialize16(activation[i]);}
-      serialize8(checksum);
-      for(i=0;i<indTX;i++) {g_serial.write(char(outBuf_[i]));}
-
-      intPowerTrigger = (round(confPowerTrigger.value()));
-      indTX=0;
-      serialize8('$');serialize8('M');serialize8('<');serialize8(2);serialize8(MSP_SET_MISC);
-      checksum=0;
-      serialize16(intPowerTrigger);
-      serialize8(checksum);
-      for(i=0;i<indTX;i++) {g_serial.write(char(outBuf_[i]));}
+      requestMSP(MSP_SET_BOX,payload.toArray(new Character[payload.size()]));
+     
       
-      indTX=0;
-      serialize8('$');serialize8('M');serialize8('<');serialize8(MSP_EEPROM_WRITE);
-      for(i=0;i<indTX;i++) {g_serial.write(char(outBuf_[i]));}
+      // MSP_SET_MISC
+      payload = new ArrayList<Character>();
+      intPowerTrigger = (round(confPowerTrigger.value()));
+ 
+      payload.add(char(intPowerTrigger % 256));
+      payload.add(char(intPowerTrigger / 256));
+    
+      requestMSP(MSP_SET_MISC,payload.toArray(new Character[payload.size()]));
+      
+      // MSP_EEPROM_WRITE
+      requestMSP(MSP_EEPROM_WRITE);
     }
 
     while (g_serial.available()>0) {
