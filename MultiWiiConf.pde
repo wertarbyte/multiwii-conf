@@ -1,14 +1,12 @@
 import processing.serial.Serial; // serial library
 import controlP5.*; // controlP5 library
-import processing.opengl.*;
-import java.lang.StringBuffer;
-import javax.swing.*;
-import javax.swing.SwingUtilities;
-//import java.awt.event.*;
-import javax.swing.filechooser.FileFilter;
+import processing.opengl.*; 
+import java.lang.StringBuffer; // for efficient String concatemation
+import javax.swing.SwingUtilities; // required for swing and EDT
+import javax.swing.JFileChooser; // Saving dialogue
+import javax.swing.filechooser.FileFilter; // for our configuration file filter "*.mwi"
 
 
-  
 Serial g_serial;
 ControlP5 controlP5;
 Textlabel txtlblWhichcom; 
@@ -19,14 +17,15 @@ static int PIDITEMS=9;
 int commListMax;
 
 cGraph g_graph;
-int windowsX    = 800;        int windowsY    = 540;
+int windowsX    = 1000;       int windowsY    = 540;
 int xGraph      = 10;         int yGraph      = 325;
-int xObj        = 700;        int yObj        = 450;
+int xObj        = 900;        int yObj        = 450;
 int xParam      = 120;        int yParam      = 5;
-int xRC         = 650;        int yRC         = 10;
-int xMot        = 490;        int yMot        = 25;
-int xButton     = 485;        int yButton     = 185;
-int xBox        = xParam+190; int yBox        = yParam+70;
+int xRC         = 850;        int yRC         = 10;
+int xMot        = 690;        int yMot        = 25;
+int xButton     = 685;        int yButton     = 185;
+int xBox        = 415;        int yBox        = 10;
+int xGPS        = 610;        int yGPS        = 450;
 
 boolean axGraph =true,ayGraph=true,azGraph=true,gxGraph=true,gyGraph=true,gzGraph=true,altGraph=true,headGraph=true, magxGraph =true,magyGraph=true,magzGraph=true,
         debug1Graph = false,debug2Graph = false,debug3Graph = false,debug4Graph = false;
@@ -45,7 +44,7 @@ private static final int ROLL = 0, PITCH = 1, YAW = 2, ALT = 3, VEL = 4, LEVEL =
 Numberbox confP[] = new Numberbox[PIDITEMS], confI[] = new Numberbox[PIDITEMS], confD[] = new Numberbox[PIDITEMS];
 int       byteP[] = new int[PIDITEMS],       byteI[] = new int[PIDITEMS],       byteD[] = new int[PIDITEMS];
 
-Numberbox confRC_RATE, confRC_EXPO, rollPitchRate, yawRate, dynamic_THR_PID, throttle_EXPO, throttle_MID;
+Numberbox confRC_RATE, confRC_EXPO, rollPitchRate, yawRate, dynamic_THR_PID, throttle_EXPO, throttle_MID, confPowerTrigger;
 
 int  byteRC_RATE,byteRC_EXPO, byteRollPitchRate,byteYawRate, byteDynThrPID,byteThrottle_EXPO, byteThrottle_MID;
 
@@ -77,7 +76,6 @@ int GPS_distanceToHome, GPS_directionToHome,
     GPS_latitude,GPS_longitude,
     init_com,graph_on,pMeterSum,intPowerTrigger,bytevbat;
 
-Numberbox confPowerTrigger;
 
 float mot[] = new float[8],
       servo[] = new float[8],
@@ -86,8 +84,7 @@ float mot[] = new float[8],
 
 int cycleTime,i2cError;
 
-CheckBox checkbox1[] = new CheckBox[CHECKBOXITEMS],
-         checkbox2[] = new CheckBox[CHECKBOXITEMS];
+CheckBox checkbox[] = new CheckBox[CHECKBOXITEMS];
 int activation[] = new int[CHECKBOXITEMS];
 
 Button buttonCheckbox[] = new Button[CHECKBOXITEMS];
@@ -134,9 +131,9 @@ void setup() {
   // text label for which comm port selected
   txtlblWhichcom = controlP5.addTextlabel("txtlblWhichcom","No Port Selected",5,65); // textlabel(name,text,x,y)
   
-  buttonSAVE = controlP5.addButton("bSAVE",1,5,45,40,19); buttonSAVE.setLabel("EXPORT"); buttonSAVE.setColorBackground(red_);
+  buttonSAVE = controlP5.addButton("bSAVE",1,5,45,40,19); buttonSAVE.setLabel("SAVE"); buttonSAVE.setColorBackground(red_);
   
-  buttonIMPORT = controlP5.addButton("bIMPORT",1,50,45,40,19); buttonIMPORT.setLabel("IMPORT"); buttonIMPORT.setColorBackground(red_);
+  buttonIMPORT = controlP5.addButton("bIMPORT",1,50,45,40,19); buttonIMPORT.setLabel("LOAD"); buttonIMPORT.setColorBackground(red_);
   
     
   buttonSTART = controlP5.addButton("bSTART",1,xGraph+110,yGraph-25,40,19); buttonSTART.setLabel("START"); buttonSTART.setColorBackground(red_);
@@ -239,7 +236,7 @@ void setup() {
   rollPitchRate.setDirection(Controller.HORIZONTAL);rollPitchRate.setMin(0);rollPitchRate.setMax(1);rollPitchRate.setColorBackground(red_);
   yawRate = (controlP5.Numberbox) hideLabel(controlP5.addNumberbox("yawRate",0,xParam+160,yParam+54,30,14));yawRate.setDecimalPrecision(2);yawRate.setMultiplier(0.01);
   yawRate.setDirection(Controller.HORIZONTAL);yawRate.setMin(0);yawRate.setMax(1);yawRate.setColorBackground(red_); 
-  dynamic_THR_PID = (controlP5.Numberbox) hideLabel(controlP5.addNumberbox("dynamic_THR_PID",0,xParam+300,yParam+12,30,14));dynamic_THR_PID.setDecimalPrecision(2);dynamic_THR_PID.setMultiplier(0.01);
+  dynamic_THR_PID = (controlP5.Numberbox) hideLabel(controlP5.addNumberbox("dynamic_THR_PID",0,xParam+215,yParam+22,30,14));dynamic_THR_PID.setDecimalPrecision(2);dynamic_THR_PID.setMultiplier(0.01);
   dynamic_THR_PID.setDirection(Controller.HORIZONTAL);dynamic_THR_PID.setMin(0);dynamic_THR_PID.setMax(1);dynamic_THR_PID.setColorBackground(red_);
 
   confRC_RATE = controlP5.addNumberbox("RC RATE",1,xParam+40,yParam+220,30,14);confRC_RATE.setDecimalPrecision(2);confRC_RATE.setMultiplier(0.01);confRC_RATE.setLabel("");
@@ -255,26 +252,12 @@ void setup() {
   for(int i=0;i<CHECKBOXITEMS;i++) {
     buttonCheckbox[i] = controlP5.addButton("bcb"+i,1,xBox-30,yBox+20+13*i,68,12);
     buttonCheckbox[i].setColorBackground(red_);buttonCheckbox[i].setLabel(buttonCheckboxLabel[i]);
-    checkbox1[i] =  controlP5.addCheckBox("cb"+i,xBox+40,yBox+20+13*i);
-    checkbox1[i].setColorActive(color(255));checkbox1[i].setColorBackground(color(120));
-    checkbox1[i].setItemsPerRow(6);checkbox1[i].setSpacingColumn(10);
-    checkbox1[i].setLabel("");
-  //  hideLabel(checkbox1[i].addItem(i + "1",1));hideLabel(checkbox1[i].addItem(i + "2",2));hideLabel(checkbox1[i].addItem(i + "3",3));
-  //  hideLabel(checkbox1[i].addItem(i + "4",4));hideLabel(checkbox1[i].addItem(i + "5",5));hideLabel(checkbox1[i].addItem(i + "6",6));
-
-    checkbox2[i] =  controlP5.addCheckBox("cb_"+i,xBox+170,yBox+20+13*i);
-    checkbox2[i].setColorActive(color(255));checkbox2[i].setColorBackground(color(120));
-    checkbox2[i].setItemsPerRow(6);checkbox2[i].setSpacingColumn(10);
-    checkbox2[i].setLabel("");
-   // hideLabel(checkbox2[i].addItem(i + "1_",1));hideLabel(checkbox2[i].addItem(i + "2_",2));hideLabel(checkbox2[i].addItem(i + "3_",3));
-   // hideLabel(checkbox2[i].addItem(i + "4_",4));hideLabel(checkbox2[i].addItem(i + "5_",5));hideLabel(checkbox2[i].addItem(i + "6_",6));
-
-    for (int j=1; j<=6; j++) {
-      checkbox1[i].addItem(i + "_cb1_" + j, j);
-      checkbox2[i].addItem(i + "_cb2_" + j, j);
-    }
-    checkbox1[i].hideLabels();	
-    checkbox2[i].hideLabels();
+    checkbox[i] =  controlP5.addCheckBox("cb"+i,xBox+40,yBox+20+13*i);
+    checkbox[i].setColorActive(color(255));checkbox[i].setColorBackground(color(120));
+    checkbox[i].setItemsPerRow(12);checkbox[i].setSpacingColumn(10);
+    checkbox[i].setLabel("");
+    for (int j=1; j<=12; j++) checkbox[i].addItem(i + "_cb_" + j, j);
+    checkbox[i].hideLabels();	
   }
   
   buttonREAD =          controlP5.addButton("READ",1,xParam+5,yParam+260,50,16);buttonREAD.setColorBackground(red_);
@@ -474,21 +457,23 @@ void draw() {
       
       // MSP_SET_RC_TUNING
       payload = new ArrayList<Character>();
-      payload.add(char( round(confRC_RATE.value()*100)) );    MWI.setProperty("rc.rate",String.valueOf(confRC_RATE.value()));
-      payload.add(char( round(confRC_EXPO.value()*100)) );    MWI.setProperty("rc.expo",String.valueOf(confRC_EXPO.value()));
-      payload.add(char( round(rollPitchRate.value()*100)) );  MWI.setProperty("rc.rollpitch.rate",String.valueOf(rollPitchRate.value()));
-      payload.add(char( round(yawRate.value()*100)) );        MWI.setProperty("rc.yaw.rate",String.valueOf(yawRate.value()));
-      payload.add(char( round(dynamic_THR_PID.value()*100)) );  MWI.setProperty("rc.throttle.rate",String.valueOf(dynamic_THR_PID.value()));
-      payload.add(char( round(throttle_MID.value()*100)) );   MWI.setProperty("rc.throttle.mid",String.valueOf(throttle_MID.value()));
-      payload.add(char( round(throttle_EXPO.value()*100)) );  MWI.setProperty("rc.throttle.expo",String.valueOf(throttle_EXPO.value()));
+      payload.add(char( round(confRC_RATE.value()*100)) );    
+      payload.add(char( round(confRC_EXPO.value()*100)) );    
+      payload.add(char( round(rollPitchRate.value()*100)) );  
+      payload.add(char( round(yawRate.value()*100)) );        
+      payload.add(char( round(dynamic_THR_PID.value()*100)) );  
+      payload.add(char( round(throttle_MID.value()*100)) );   
+      payload.add(char( round(throttle_EXPO.value()*100)) );  
       requestMSP(MSP_SET_RC_TUNING,payload.toArray( new Character[payload.size()]) );
+
+      
 
       // MSP_SET_PID
       payload = new ArrayList<Character>();
       for(i=0;i<PIDITEMS;i++) {
-        byteP[i] = (round(confP[i].value()*10)); MWI.setProperty("pid."+i+".p",String.valueOf(confP[i].value()));
-        byteI[i] = (round(confI[i].value()*1000)); MWI.setProperty("pid."+i+".i",String.valueOf(confI[i].value()));
-        byteD[i] = (round(confD[i].value())); MWI.setProperty("pid."+i+".d",String.valueOf(confD[i].value()));
+        byteP[i] = (round(confP[i].value()*10)); 
+        byteI[i] = (round(confI[i].value()*1000)); 
+        byteD[i] = (round(confD[i].value())); 
       }
 
       //POS-4 POSR-5 NAVR-6 use different dividers
@@ -509,17 +494,16 @@ void draw() {
     	  payload.add(char(byteD[i])); 
       }
       requestMSP(MSP_SET_PID,payload.toArray(new Character[payload.size()]));
-        
 
+      
       // MSP_SET_BOX
       payload = new ArrayList<Character>();
       for(i=0;i<CHECKBOXITEMS;i++) {
         activation[i] = 0;
-        for(aa=0;aa<6;aa++) {
-          activation[i] += (int)(checkbox1[i].arrayValue()[aa]*(1<<aa)) + (int)(checkbox2[i].arrayValue()[aa]*(1<<(aa+6)));
-            MWI.setProperty("box."+i+".aux"+i/3+"."+(aa%3),String.valueOf(checkbox1[i].arrayValue()[aa]*(1<<aa)));
-            MWI.setProperty("box."+i+".aux"+(1+i/3)+"."+(aa%3),String.valueOf(checkbox2[i].arrayValue()[aa]*(1<<aa)));
-     }
+        for(aa=0;aa<12;aa++) {
+          activation[i] += (int)(checkbox[i].arrayValue()[aa]*(1<<aa));
+          //MWI.setProperty("box."+i+".aux"+i/3+"."+(aa%3),String.valueOf(checkbox[i].arrayValue()[aa]*(1<<aa)));
+        }
         payload.add(char (activation[i] % 256) );
         payload.add(char (activation[i] / 256)  );
       }
@@ -528,15 +512,17 @@ void draw() {
       
       // MSP_SET_MISC
       payload = new ArrayList<Character>();
-      intPowerTrigger = (round(confPowerTrigger.value()));
- 
+      intPowerTrigger = round(confPowerTrigger.value());
       payload.add(char(intPowerTrigger % 256));
       payload.add(char(intPowerTrigger / 256));
-      MWI.setProperty("power.trigger",String.valueOf(intPowerTrigger));
+      
       requestMSP(MSP_SET_MISC,payload.toArray(new Character[payload.size()]));
       
       // MSP_EEPROM_WRITE
       requestMSP(MSP_EEPROM_WRITE);
+      
+      // update model with view value
+      updateModel();
     }
 
     while (g_serial.available()>0) {
@@ -620,6 +606,7 @@ void draw() {
                 confRC_RATE.setColorBackground(green_);confRC_EXPO.setColorBackground(green_);rollPitchRate.setColorBackground(green_);
                 yawRate.setColorBackground(green_);dynamic_THR_PID.setColorBackground(green_);
                 throttle_MID.setColorBackground(green_);throttle_EXPO.setColorBackground(green_);
+                updateModelMSP_SET_RC_TUNING();
                 break;
               case MSP_ACC_CALIBRATION:
                 stateMSP = 0; break;
@@ -627,7 +614,7 @@ void draw() {
                 stateMSP = 0; break;
               case MSP_PID:
                 stateMSP = 0;
-                for( i=0;i<PIDITEMS;i++) {
+                for(i=0;i<PIDITEMS;i++) {
                   byteP[i] = read8();byteI[i] = read8();byteD[i] = read8();
                   switch (i) {
                    case 0: 
@@ -662,20 +649,22 @@ void draw() {
                   confP[i].setColorBackground(green_);
                   confI[i].setColorBackground(green_);
                   confD[i].setColorBackground(green_);
-                } break;
+                } 
+                updateModelMSP_SET_PID();
+            	break;
               case MSP_BOX:
                 stateMSP = 0;
                 for( i=0;i<CHECKBOXITEMS;i++) {
                   activation[i] = read16();
-                  for( aa=0;aa<6;aa++) {
-                    if ((activation[i]&(1<<aa))>0)     checkbox1[i].activate(aa); else checkbox1[i].deactivate(aa);
-                    if ((activation[i]&(1<<(aa+6)))>0) checkbox2[i].activate(aa); else checkbox2[i].deactivate(aa);
+                  for( aa=0;aa<12;aa++) {
+                    if ((activation[i]&(1<<aa))>0) checkbox[i].activate(aa); else checkbox[i].deactivate(aa);
                   }
                 } break;
               case MSP_MISC:
                 stateMSP = 0;
                 intPowerTrigger = read16();
-                confPowerTrigger.setValue(intPowerTrigger); break;
+                confPowerTrigger.setValue(intPowerTrigger);
+            	updateModelMSP_SET_MISC();break;
               case MSP_MOTOR_PINS:
                 stateMSP = 0;
                 for( i=0;i<8;i++) {
@@ -685,6 +674,7 @@ void draw() {
                 stateMSP = 0;
                 debug1 = read16();debug2 = read16();debug3 = read16();debug4 = read16(); break;
             }
+
           }
           stateMSP = 0;
         }
@@ -728,25 +718,20 @@ void draw() {
   text(i2cError,xGraph+410,yGraph-10);
   text(cycleTime,xGraph+290,yGraph-10);
 
-  text("GPS",480,245);
-
-  text(GPS_altitude,530,260);
-  text(GPS_latitude,530,275);
-  text(GPS_longitude,530,290);
-  text(GPS_speed,530,305);
-  text(GPS_numSat,530,320);
-  text(GPS_distanceToHome,630,260);
-
-
+  text("GPS",xGPS,yGPS);
+  text(GPS_altitude,xGPS+50,yGPS+15);
+  text(GPS_latitude,xGPS+50,yGPS+30);
+  text(GPS_longitude,xGPS+50,yGPS+45);
+  text(GPS_speed,xGPS+50,yGPS+60);
+  text(GPS_numSat,xGPS+50,yGPS+75);
+  text(GPS_distanceToHome,xGPS+65,yGPS+90);
   textFont(font12);
-  text("alt   :",480,260);
-  text("lat   :",480,275);
-  text("lon   :",480,290);
-  text("speed :",480,305);
-  text("sat   :",480,320);
-  
-  text("dist",590,245);
-  text("home:",590,260);
+  text("alt   :",xGPS,yGPS+15);
+  text("lat   :",xGPS,yGPS+30);
+  text("lon   :",xGPS,yGPS+45);
+  text("speed :",xGPS,yGPS+60);
+  text("sat   :",xGPS,yGPS+75);
+  text("dist home : ",xGPS,yGPS+90);
 
   text("I2C error:",xGraph+350,yGraph-10);
   text("Cycle Time:",xGraph+220,yGraph-10);
@@ -974,14 +959,6 @@ void draw() {
     textFont(font12);
     text("Heli 120 CCPM", -42,-50);camera();popMatrix();
 	
-    // Sliders
-    /*    
-    motSlider[0].setPosition(xMot,yMot);motSlider[0].setHeight(120);motSlider[0].setCaptionLabel("Thro");motSlider[0].show();
-    servoSliderV[0].setPosition(xMot+40,yMot-15);servoSliderV[0].setCaptionLabel("LEFT");servoSliderV[0].show(); 
-    servoSliderV[2].setPosition(xMot+70,yMot) ;servoSliderV[2].setCaptionLabel("Nick");servoSliderV[2].show();
-    servoSliderV[1].setPosition(xMot+100,yMot-15);servoSliderV[1].setCaptionLabel("RIGHT");servoSliderV[1].show();
-    servoSliderH[3].setPosition(xMot+24,yMot+130);servoSliderH[3].setCaptionLabel("Yaw");servoSliderH[3].show();
-    */
     servoSliderV[7].setPosition(xMot,yMot)        ;servoSliderV[7].setCaptionLabel("Thro");servoSliderV[7].show();     
     servoSliderV[4].setPosition(xMot+40,yMot-15)  ;servoSliderV[4].setCaptionLabel("LEFT");servoSliderV[4].show(); 
     servoSliderV[3].setPosition(xMot+70,yMot+10)  ;servoSliderV[3].setCaptionLabel("Nick");servoSliderV[3].show();
@@ -1117,7 +1094,7 @@ void draw() {
   rectMode(CORNERS);
   rect(xMot-5,yMot-20, xMot+145, yMot+150);
   rect(xRC-5,yRC-5, xRC+185, yRC+210);
-  rect(xParam,yParam, xParam+355, yParam+280);
+  rect(xParam,yParam, xParam+555, yParam+280);
 
   int xSens1       = xParam + 80;
   int ySens1       = yParam + 220;
@@ -1194,41 +1171,17 @@ void draw() {
   text("NavR",xParam+3,yParam+32+6*17);
   text("LEVEL",xParam+1,yParam+32+7*17);
   text("MAG",xParam+3,yParam+32+8*17);
-  text("Throttle PID",xParam+220,yParam+15);text("attenuation",xParam+220,yParam+30);
-  text("AUX1",xBox+55,yBox+5);text("AUX2",xBox+105,yBox+5);
+  text("T P A",xParam+215,yParam+15);
+  
+  text("AUX1",xBox+55,yBox+5);text("AUX2",xBox+105,yBox+5);text("AUX3",xBox+165,yBox+5);text("AUX4",xBox+218,yBox+5);
   textFont(font8);
   text("LOW",xBox+37,yBox+15);text("MID",xBox+57,yBox+15);text("HIGH",xBox+74,yBox+15);
-  text("LOW",xBox+100,yBox+15);text("MID",xBox+123,yBox+15);text("HIGH",xBox+140,yBox+15);
+  text("L",xBox+100,yBox+15);text("M",xBox+118,yBox+15);text("H",xBox+136,yBox+15);
+  text("L",xBox+154,yBox+15);text("M",xBox+174,yBox+15);text("H",xBox+194,yBox+15);
+  text("L",xBox+212,yBox+15);text("M",xBox+232,yBox+15);text("H",xBox+252,yBox+15);
 
   pushMatrix();
   translate(0,0,0);
-  if (mouseX>xBox && mouseX<xBox+325 && mouseY>yBox && mouseY<yBox+190) {
-    stroke(0);
-    fill(0);
-    rect(xBox+150,yBox-5,xBox+325, yBox+190);
-    stroke(255);fill(255);
-
-    textFont(font12);
-    text("AUX3",xBox+180,yBox+5);text("AUX4",xBox+235,yBox+5);
-    textFont(font8);
-    text("LOW",xBox+37+130,yBox+15);text("MID",xBox+57+130,yBox+15);text("HIGH",xBox+74+130,yBox+15);
-    text("LOW",xBox+100+130,yBox+15);text("MID",xBox+123+130,yBox+15);text("HIGH",xBox+140+130,yBox+15);
-
-    for(i=0;i<CHECKBOXITEMS;i++) {
-      checkbox2[i].show();
-    }
-    for(i=0;i<8;i++) {
-      motSlider[i].hide();
-      servoSliderH[i].hide();
-      servoSliderV[i].hide();
-    }
-    buttonAcc.hide();buttonBaro.hide();buttonMag.hide();buttonGPS.hide();buttonSonar.hide();buttonOptic.hide();
-  } else {
-    for( i=0;i<CHECKBOXITEMS;i++) {
-      checkbox2[i].hide();
-    }
-    buttonAcc.show();buttonBaro.show();buttonMag.show();buttonGPS.show();buttonSonar.show();buttonOptic.show();
-  }
   popMatrix();
   if (versionMisMatch == 1) {textFont(font15);fill(#000000);text("GUI vs. Arduino: Version or Buffer size mismatch",180,420); return;}
 }
@@ -1305,109 +1258,141 @@ void InitSerial(float portValue) {
   }
 }
 
+//save the content of the model to a file
 public void bSAVE() {
-
+  updateModel();
   SwingUtilities.invokeLater(new Runnable(){
-    public void run(){
+    public void run() {
       final JFileChooser fc = new JFileChooser();
       fc.setDialogType(JFileChooser.SAVE_DIALOG);
       fc.setFileFilter(new MwiFileFilter());
-       int returnVal = fc.showOpenDialog(null);
+      int returnVal = fc.showOpenDialog(null);
+      if (returnVal == JFileChooser.APPROVE_OPTION) {
+        File file = fc.getSelectedFile();
+        System.out.println(file.toURI());
+        FileOutputStream out =null;
+        try{
+          out = new FileOutputStream(file) ;
+          MWI.conf.storeToXML(out, new Date().toString()); 
 
-        if (returnVal == JFileChooser.APPROVE_OPTION) {
-            File file = fc.getSelectedFile();
-            System.out.println(file.toURI());
+        }catch(FileNotFoundException e){
+          e.printStackTrace();
+
+        }catch( IOException ioe){/*failed to write the file*/ioe.printStackTrace();}
+        finally{
+          if (out!=null){
             try{
-            FileOutputStream out = new FileOutputStream(file) ;
-            MWI.conf.storeToXML(out, new Date().toString()); 
-            out.close();
-            out = null;
-            file=null;
-            }catch(FileNotFoundException e){
-            
-            }catch(IOException e1){
-              e1.printStackTrace();
-            }
-            
+              out.close();
+            }catch( IOException ioe){/*failed to close the file*/}
+          }
         }
-      
-    }});
-  
+    }
+    }
+  }
+  );
 }
 
+// import the content of a file into the model
 public void bIMPORT(){
-  
   SwingUtilities.invokeLater(new Runnable(){
     public void run(){
       final JFileChooser fc = new JFileChooser();
       fc.setDialogType(JFileChooser.SAVE_DIALOG);
       fc.setFileFilter(new MwiFileFilter());
-       int returnVal = fc.showOpenDialog(null);
+      int returnVal = fc.showOpenDialog(null);
+      if (returnVal == JFileChooser.APPROVE_OPTION) {
+        File file = fc.getSelectedFile();
+        System.out.println(file.toURI());
+        FileInputStream in = null;
+        try{
+          in = new FileInputStream(file) ;
+          MWI.conf.loadFromXML(in); 
+          
+          updateView();
+          
+        }catch(FileNotFoundException e){
+          e.printStackTrace();
 
-        if (returnVal == JFileChooser.APPROVE_OPTION) {
-            File file = fc.getSelectedFile();
-            System.out.println(file.toURI());
+        }catch( IOException ioe){/*failed to read the file*/ioe.printStackTrace();
+        }finally{
+          if (in!=null){
             try{
-            FileInputStream in = new FileInputStream(file) ;
-            MWI.conf.loadFromXML(in); 
-            in.close();
-            in = null;
-            file=null;
-            confUpdateValue();
-            }catch(FileNotFoundException e){
-            
-            }catch(IOException e1){
-              e1.printStackTrace();
-            }
-            
+              in.close();
+            }catch( IOException ioe){/*failed to close the file*/}
+          }
         }
-      
-    }});
+      }
+    }
+  }
+  );
 }
 
-public   void confUpdateValue(){
- 
+//update the model with the value view 
+
+public void updateModel(){
+	updateModelMSP_SET_RC_TUNING();
+	updateModelMSP_SET_PID();
+	updateModelMSP_SET_MISC();
+}
+
+
+public void updateModelMSP_SET_RC_TUNING(){
+	MWI.setProperty("rc.rate",String.valueOf(confRC_RATE.value()));
+	MWI.setProperty("rc.expo",String.valueOf(confRC_EXPO.value()));
+	MWI.setProperty("rc.rollpitch.rate",String.valueOf(rollPitchRate.value()));
+	MWI.setProperty("rc.yaw.rate",String.valueOf(yawRate.value()));
+	MWI.setProperty("rc.throttle.rate",String.valueOf(dynamic_THR_PID.value()));
+	MWI.setProperty("rc.throttle.mid",String.valueOf(throttle_MID.value()));
+	MWI.setProperty("rc.throttle.expo",String.valueOf(throttle_EXPO.value()));
+}
+
+public void updateModelMSP_SET_PID(){
+for(int i=0;i<PIDITEMS;i++) {
+    MWI.setProperty("pid."+i+".p",String.valueOf(confP[i].value()));
+    MWI.setProperty("pid."+i+".i",String.valueOf(confI[i].value()));
+    MWI.setProperty("pid."+i+".d",String.valueOf(confD[i].value()));
+ }
+}
+
+public void updateModelMSP_SET_MISC(){	
+	MWI.setProperty("power.trigger",String.valueOf(round(confPowerTrigger.value())));
+}
+
+
+// use the model to update the value of the view
+
+public void updateView(){
   // MSP_SET_RC_TUNING
-   confRC_RATE.setValue(Float.valueOf(MWI.conf.getProperty("rc.rate")));
-   confRC_EXPO.setValue(Float.valueOf(MWI.conf.getProperty("rc.expo")));
-   rollPitchRate.setValue(Float.valueOf(MWI.conf.getProperty("rc.rollpitch.rate")));
-   yawRate.setValue(Float.valueOf(MWI.conf.getProperty("rc.yaw.rate")));
-   dynamic_THR_PID.setValue(Float.valueOf(MWI.conf.getProperty("rc.throttle.rate")));
-   throttle_MID.setValue(Float.valueOf(MWI.conf.getProperty("rc.throttle.mid")));
-   throttle_EXPO.setValue(Float.valueOf(MWI.conf.getProperty("rc.throttle.expo")));
+  confRC_RATE.setValue(Float.valueOf(MWI.conf.getProperty("rc.rate")));
+  confRC_EXPO.setValue(Float.valueOf(MWI.conf.getProperty("rc.expo")));
+  rollPitchRate.setValue(Float.valueOf(MWI.conf.getProperty("rc.rollpitch.rate")));
+  yawRate.setValue(Float.valueOf(MWI.conf.getProperty("rc.yaw.rate")));
+  dynamic_THR_PID.setValue(Float.valueOf(MWI.conf.getProperty("rc.throttle.rate")));
+  throttle_MID.setValue(Float.valueOf(MWI.conf.getProperty("rc.throttle.mid")));
+  throttle_EXPO.setValue(Float.valueOf(MWI.conf.getProperty("rc.throttle.expo")));
   
   // MSP_SET_PID
   for(int i=0;i<PIDITEMS;i++) {
-     byteP[i] = round(Float.valueOf(MWI.conf.getProperty("pid."+i+".p")) );
-     byteI[i] = round(Float.valueOf(MWI.conf.getProperty("pid."+i+".i")) );
-     byteD[i] = round(Float.valueOf(MWI.conf.getProperty("pid."+i+".d")) );
+    byteP[i] = round(Float.valueOf(MWI.conf.getProperty("pid."+i+".p")) );
+    byteI[i] = round(Float.valueOf(MWI.conf.getProperty("pid."+i+".i")) );
+    byteD[i] = round(Float.valueOf(MWI.conf.getProperty("pid."+i+".d")) );
   }
-
-             
-                
-      for(int i=0;i<CHECKBOXITEMS;i++) {
-        activation[i] = 0;
-        for(int aa=0;aa<6;aa++) {
-          activation[i] += (int)(checkbox1[i].arrayValue()[aa]*(1<<aa)) + (int)(checkbox2[i].arrayValue()[aa]*(1<<(aa+6)));
-            if (Float.valueOf(MWI.conf.getProperty("box."+i+".aux"+i/3+"."+(aa%3)))>0) checkbox1[i].activate(aa); else checkbox1[i].deactivate(aa);
-            if (Float.valueOf(MWI.conf.getProperty("box."+i+".aux"+(1+i/3)+"."+(aa%3)))>0) checkbox2[i].activate(aa); else checkbox2[i].deactivate(aa);
-     }
+ /* for(int i=0;i<CHECKBOXITEMS;i++) {
+    activation[i] = 0;
+    for(int aa=0;aa<12;aa++) {
+      activation[i] += (int)(checkbox[i].arrayValue()[aa]*(1<<aa));
+      if (Float.valueOf(MWI.conf.getProperty("box."+i+".aux"+i/3+"."+(aa%3)))>0) checkbox[i].activate(aa); else checkbox[i].deactivate(aa);
     }
-      
-        
-      // MSP_SET_MISC
-
-      confPowerTrigger.setValue(Float.valueOf(MWI.conf.getProperty("power.trigger")));
+  }*/
+  // MSP_SET_MISC
+  confPowerTrigger.setValue(Float.valueOf(MWI.conf.getProperty("power.trigger")));
  }
       
 
-//********************************************************
-//********************************************************
-//********************************************************
 
+//  our model is a static singleton for Properties wrapper
 static class MWI{
 private static Properties conf = new Properties();
-
 
 public static void setProperty(String key ,String value ){
 conf.setProperty( key,value );
@@ -1417,7 +1402,17 @@ public static String getProperty(String key ){
  return conf.getProperty( key,"0");
 }
 
+public static void clear(){
+	conf= null; // help gc
+	conf = new Properties();
 }
+
+}
+
+//********************************************************
+//********************************************************
+//********************************************************
+
 class cDataArray {
   float[] m_data;
   int m_maxSize, m_startIndex = 0, m_endIndex = 0, m_curSize;
@@ -1482,33 +1477,28 @@ class cGraph {
   }
 }
 
-
 public class MwiFileFilter extends FileFilter {
-
-    public boolean accept(File f) {
-	if(f != null) {
-	    if(f.isDirectory()) {
-		return true;
-	    }
-	    String extension = getExtension(f);
-	    if("mwi".equals(extension)) {
-		return true;
-	    };
-	}
-	return false;
-    }
-
+ public boolean accept(File f) {
+   if(f != null) {
+     if(f.isDirectory()) {
+       return true;
+     }
+     String extension = getExtension(f);
+     if("mwi".equals(extension)) {
+       return true;
+     };
+   }
+   return false;
+ }
  public String getExtension(File f) {
-	if(f != null) {
-	    String filename = f.getName();
-	    int i = filename.lastIndexOf('.');
-	    if(i>0 && i<filename.length()-1) {
-		return filename.substring(i+1).toLowerCase();
-	    };
-	}
-	return null;
+   if(f != null) {
+      String filename = f.getName();
+      int i = filename.lastIndexOf('.');
+      if(i>0 && i<filename.length()-1) {
+        return filename.substring(i+1).toLowerCase();
+      };
     }
-  
-public String getDescription() {return "*.mwi Multiwii configuration file";}   
-
+    return null;
+  } 
+  public String getDescription() {return "*.mwi Multiwii configuration file";}   
 }
