@@ -5,7 +5,7 @@ import java.lang.StringBuffer; // for efficient String concatemation
 import javax.swing.SwingUtilities; // required for swing and EDT
 import javax.swing.JFileChooser; // Saving dialogue
 import javax.swing.filechooser.FileFilter; // for our configuration file filter "*.mwi"
-
+import javax.swing.JOptionPane; // for message dialogue
 
 Serial g_serial;
 ControlP5 controlP5;
@@ -1269,21 +1269,29 @@ public void bSAVE() {
       int returnVal = fc.showOpenDialog(null);
       if (returnVal == JFileChooser.APPROVE_OPTION) {
         File file = fc.getSelectedFile();
-        System.out.println(file.toURI());
+        
         FileOutputStream out =null;
+        String error = null;
         try{
           out = new FileOutputStream(file) ;
           MWI.conf.storeToXML(out, new Date().toString()); 
-
+          JOptionPane.showMessageDialog(null,new StringBuffer().append("configuration saved : ").append(file.toURI()) );
         }catch(FileNotFoundException e){
-          e.printStackTrace();
-
-        }catch( IOException ioe){/*failed to write the file*/ioe.printStackTrace();}
-        finally{
+         
+          error = e.getCause().toString();
+        }catch( IOException ioe){
+        	/*failed to write the file*/
+        	ioe.printStackTrace();
+        	error = ioe.getCause().toString();
+        }finally{
+        	
           if (out!=null){
             try{
               out.close();
-            }catch( IOException ioe){/*failed to close the file*/}
+            }catch( IOException ioe){/*failed to close the file*/error = ioe.getCause().toString();}
+          }
+          if (error !=null){
+        	  JOptionPane.showMessageDialog(null, new StringBuffer().append("error : ").append(error) );
           }
         }
     }
@@ -1302,23 +1310,35 @@ public void bIMPORT(){
       int returnVal = fc.showOpenDialog(null);
       if (returnVal == JFileChooser.APPROVE_OPTION) {
         File file = fc.getSelectedFile();
-        System.out.println(file.toURI());
         FileInputStream in = null;
+        boolean completed = false;
+        String error = null;
         try{
           in = new FileInputStream(file) ;
           MWI.conf.loadFromXML(in); 
-          
-          updateView();
+          JOptionPane.showMessageDialog(null,new StringBuffer().append("configuration loaded : ").append(file.toURI()) );
+          completed  = true;
           
         }catch(FileNotFoundException e){
-          e.printStackTrace();
+        	error = e.getCause().toString();
 
-        }catch( IOException ioe){/*failed to read the file*/ioe.printStackTrace();
+        }catch( IOException ioe){/*failed to read the file*/
+        	ioe.printStackTrace();
+        	error = ioe.getCause().toString();
         }finally{
+          if (!completed){
+        	 // MWI.conf.clear();
+        	 // or we can set the properties with view values, sort of 'nothing happens'
+        	 updateModel();
+          }
           if (in!=null){
             try{
               in.close();
             }catch( IOException ioe){/*failed to close the file*/}
+          }
+          updateView();
+          if (error !=null){
+        	  JOptionPane.showMessageDialog(null, new StringBuffer().append("error : ").append(error) );
           }
         }
       }
