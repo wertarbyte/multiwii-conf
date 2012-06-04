@@ -1409,8 +1409,7 @@ public void updateView(){
  }
       
 
-
-//  our model is a static singleton for Properties wrapper
+//  our model 
 static class MWI{
 private static Properties conf = new Properties();
 
