@@ -379,9 +379,12 @@ void requestMSP(int msp, Character[] payload) {
   }
 
   byte checksum=0;
-  bf.add((byte)((payload != null ? int(payload.length)  : 0)&0xFF));
+  byte pl_size = (byte)((payload != null ? int(payload.length) : 0)&0xFF);
+  bf.add(pl_size);
+  checksum ^= (pl_size&0xFF);
 
   bf.add((byte)(msp & 0xFF));
+  checksum ^= (msp&0xFF);
 
   if (payload != null) {
     for (char c :payload){
@@ -550,10 +553,12 @@ void draw() {
         p = 0;
         offset = 0;
         checksum = 0;
+        checksum ^= (c&0xFF);
         /* the command is to follow */
         c_state = HEADER_SIZE;
       } else if (c_state == HEADER_SIZE) {
         cmd = (byte)(c&0xFF);
+        checksum ^= (c&0xFF);
         c_state = HEADER_CMD;
       } else if (c_state == HEADER_CMD && offset < dataSize) {
           checksum ^= (c&0xFF);
