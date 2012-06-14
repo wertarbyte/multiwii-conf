@@ -15,7 +15,11 @@ Textlabel txtlblWhichcom;
 ListBox commListbox;
 
 static int CHECKBOXITEMS=0;
-static int PIDITEMS=10;
+static int PIDITEMS=0;
+
+String[] pidnames = {};
+int[][][] pidconf;
+
 int commListMax;
 
 /* time (ms) to wait between requests */
@@ -46,8 +50,8 @@ cDataArray accPITCH   = new cDataArray(100), accROLL    = new cDataArray(100), a
 
 private static final int ROLL = 0, PITCH = 1, YAW = 2, ALT = 3, VEL = 4, LEVEL = 5, MAG = 6;
 
-Numberbox confP[] = new Numberbox[PIDITEMS], confI[] = new Numberbox[PIDITEMS], confD[] = new Numberbox[PIDITEMS];
-int       byteP[] = new int[PIDITEMS],       byteI[] = new int[PIDITEMS],       byteD[] = new int[PIDITEMS];
+Numberbox confP[], confI[], confD[];
+int       byteP[], byteI[], byteD[];
 
 Numberbox confRC_RATE, confRC_EXPO, rollPitchRate, yawRate, dynamic_THR_PID, throttle_EXPO, throttle_MID, confPowerTrigger;
 
@@ -207,6 +211,11 @@ class Reply {
         case MSP_PID:
             for(i=0;i<PIDITEMS;i++) {
               byteP[i] = read8();byteI[i] = read8();byteD[i] = read8();
+              /*
+              System.out.println("P value "+i+": "+byteP[i]);
+              System.out.println("I value "+i+": "+byteI[i]);
+              System.out.println("D value "+i+": "+byteD[i]);
+              */
               switch (i) {
                case 0: 
                     confP[i].setValue(byteP[i]/10.0);confI[i].setValue(byteI[i]/1000.0);confD[i].setValue(byteD[i]);
@@ -259,6 +268,12 @@ class Reply {
         case MSP_PIDNAMES:
             /* TODO create GUI elements from this message */
             System.out.println("Got PIDNAMES: "+new String(payload, 0, payload.length));
+            pidnames = new String(payload, 0, payload.length).split(";");
+            break;
+        case MSP_PIDCONF:
+            System.out.println("Got PIDCONF");
+            load_pidconf(payload, payload.length);
+            create_pidboxes();
             break;
         case MSP_MISC:
             intPowerTrigger = read16();
@@ -372,7 +387,7 @@ Thread sendThread = new Thread(new Runnable() {
               last_request_time = 0;
             }
           }
-          try { Thread.sleep(5); } catch (Exception e) {}
+          try { Thread.sleep(20); } catch (Exception e) {}
        }
       }
     } finally {} // catch(Exception e) {};
@@ -402,6 +417,68 @@ void create_checkboxes(String[] names) {
     i++;
   }
   CHECKBOXITEMS = names.length;
+}
+
+void load_pidconf(byte[] payload, int size) {
+  int items = size/(2*3);
+  pidconf = new int[items][2][3];
+  int b = 0;
+  for (int i=0; i<items; i++) {
+    for (int x=0; x<2; x++) {
+      for (int y=0; y<3; y++) {
+        System.out.println(i+": ("+x+"/"+y+") "+payload[b]);
+        pidconf[i][x][y] = payload[b++];
+      }
+    }
+  }
+}
+
+void create_pidboxes() {
+  int items = PIDITEMS;
+  PIDITEMS=0;
+  /* destroy old widgets */
+  System.out.println("Destroying old widgets");
+  for (int i=0; i<items; i++) {
+    System.out.println("removing "+i);
+    confP[i].remove();
+    confI[i].remove();
+    confD[i].remove();
+  }
+  System.out.println("done");
+  items = pidconf.length;
+  
+  confP = new Numberbox[items];
+  confI = new Numberbox[items];
+  confD = new Numberbox[items];
+  byteP = new int[items];
+  byteI = new int[items];
+  byteD = new int[items];
+  String[] name = {"P", "I", "D"};
+  int[] x_offset = { 40, 75, 120 };
+  int[] x_dim = {30, 40, 30};
+
+  for (int i=0; i<items; i++) {
+    for (int n=0; n<3; n++) {
+      Numberbox nb = (Numberbox) hideLabel(controlP5.addNumberbox("conf"+name[n]+i,0,xParam+x_offset[n],yParam+20+i*17,x_dim[n],14));
+      nb.setColorBackground(red_);
+      nb.setMin(0);
+      nb.setDirection(Controller.HORIZONTAL);
+      nb.setDecimalPrecision(pidconf[i][0][n]*-1);
+      nb.setMultiplier((float)Math.pow(10, pidconf[i][0][n]));
+      nb.setMax(pidconf[i][1][n]);
+      if (pidconf[i][2][n] == 0) {
+        nb.hide();
+      }
+      if (n==0) {
+        confP[i] = nb;
+      } else if (n==1) {
+        confI[i] = nb;        
+      } else if (n==2) {
+        confD[i] = nb;        
+      }
+    }
+  }
+  PIDITEMS = items;
 }
 
 // coded by Eberhard Rensch
@@ -519,7 +596,7 @@ void setup() {
   debug2Slider  =    controlP5.addSlider("debug2Slider",-32000,+32000,0,x+250,y6,50,10);debug2Slider.setDecimalPrecision(0);debug2Slider.setLabel("");
   debug3Slider  =    controlP5.addSlider("debug3Slider",-32000,+32000,0,x+370,y6,50,10);debug3Slider.setDecimalPrecision(0);debug3Slider.setLabel("");
   debug4Slider  =    controlP5.addSlider("debug4Slider",-32000,+32000,0,x+490,y6,50,10);debug4Slider.setDecimalPrecision(0);debug4Slider.setLabel("");
-
+/*
   for(int i=0;i<PIDITEMS;i++) {
     confP[i] = (controlP5.Numberbox) hideLabel(controlP5.addNumberbox("confP"+i,0,xParam+40,yParam+20+i*17,30,14));
     confP[i].setColorBackground(red_);confP[i].setMin(0);confP[i].setDirection(Controller.HORIZONTAL);confP[i].setDecimalPrecision(1);confP[i].setMultiplier(0.1);confP[i].setMax(20);
@@ -542,6 +619,7 @@ void setup() {
   confP[6].setDecimalPrecision(1);confP[6].setMultiplier(0.1);confP[6].setMax(25);
   confI[6].setDecimalPrecision(2);confI[6].setMultiplier(0.01);confI[6].setMax(2.5);
   confD[6].setDecimalPrecision(3);confD[6].setMultiplier(.001);confD[6].setMax(.250);
+  */
 
   rollPitchRate = (controlP5.Numberbox) hideLabel(controlP5.addNumberbox("rollPitchRate",0,xParam+160,yParam+30,30,14));rollPitchRate.setDecimalPrecision(2);rollPitchRate.setMultiplier(0.01);
   rollPitchRate.setDirection(Controller.HORIZONTAL);rollPitchRate.setMin(0);rollPitchRate.setMax(1);rollPitchRate.setColorBackground(red_);
@@ -612,6 +690,7 @@ private static final int
   MSP_BOXNAMES             =116,
   MSP_PIDNAMES             =117,
   MSP_HEADING              =118,
+  MSP_PIDCONF              =119,
 
   MSP_SET_RAW_RC           =200,
   MSP_SET_RAW_GPS          =201,
@@ -761,7 +840,7 @@ void draw() {
     }
     if (toggleRead) {
       toggleRead=false;
-      int[] requests = {MSP_BOXNAMES, MSP_RC_TUNING, MSP_PID, MSP_BOX, MSP_MISC };
+      int[] requests = {MSP_PIDCONF, MSP_BOXNAMES, MSP_PIDNAMES, MSP_RC_TUNING, MSP_PID, MSP_BOX, MSP_MISC };
       queueMSP(requests);
       // queueMSP(MSP_PIDNAMES);
       buttonWRITE.setColorBackground(green_);
@@ -1326,6 +1405,7 @@ void draw() {
   text("EXPO",xParam+3,yParam+210);
   text("RATE",xParam+160,yParam+15);
   text("ROLL",xParam+3,yParam+32);
+  /*
   text("PITCH",xParam+3,yParam+32+1*17);
   text("YAW",xParam+3,yParam+32+2*17);
   text("ALT",xParam+3,yParam+32+3*17);
@@ -1334,6 +1414,12 @@ void draw() {
   text("NavR",xParam+3,yParam+32+6*17);
   text("LEVEL",xParam+1,yParam+32+7*17);
   text("MAG",xParam+3,yParam+32+8*17);
+  */
+  i=0;
+  for (String s : pidnames) {
+    text(s, xParam+3, yParam+32+i*17);
+    i++;
+  }
   text("T P A",xParam+215,yParam+15);
   
   text("AUX1",xBox+55,yBox+5);text("AUX2",xBox+105,yBox+5);text("AUX3",xBox+165,yBox+5);text("AUX4",xBox+218,yBox+5);
