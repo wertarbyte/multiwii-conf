@@ -17,6 +17,7 @@ ListBox commListbox;
 static int CHECKBOXITEMS=0;
 static int PIDITEMS=10;
 static int AUX_CHANNELS=0;
+static int AUX_STEPS=0;
 int commListMax;
 
 cGraph g_graph;
@@ -95,7 +96,7 @@ int activation[];
 Button buttonCheckbox[];
 PFont font8,font12,font15;
 
-void create_checkboxes(int aux_channels, String[] names) {
+void create_checkboxes(int aux_channels, int aux_steps, String[] names) {
   /* destroy old buttons */
   for (int i=0; i<CHECKBOXITEMS; i++) {
     buttonCheckbox[i].remove();
@@ -111,9 +112,9 @@ void create_checkboxes(int aux_channels, String[] names) {
     buttonCheckbox[i].setColorBackground(red_);buttonCheckbox[i].setLabel(name);
     checkbox[i] =  controlP5.addCheckBox("cb"+i,xBox+40,yBox+20+13*i);
     checkbox[i].setColorActive(color(255));checkbox[i].setColorBackground(color(120));
-    checkbox[i].setItemsPerRow(aux_channels*3);checkbox[i].setSpacingColumn(10);
+    checkbox[i].setItemsPerRow(aux_channels*aux_steps);checkbox[i].setSpacingColumn(10);
     checkbox[i].setLabel("");
-    for (int j=1; j<=(aux_channels*3); j++) checkbox[i].addItem(i + "_cb_" + j, j);
+    for (int j=1; j<=(aux_channels*aux_steps); j++) checkbox[i].addItem(i + "_cb_" + j, j);
     checkbox[i].hideLabels();
     i++;
   }
@@ -425,8 +426,8 @@ void sendRequestMSP(List<Byte> msp) {
 
 void setCheckboxes() {
   for (int pi=0; pi<CHECKBOXITEMS; pi++) {
-    for (int s=0; s<(3*AUX_CHANNELS); s++) {
-      int bit = pi*3*AUX_CHANNELS+s;
+    for (int s=0; s<(AUX_STEPS*AUX_CHANNELS); s++) {
+      int bit = pi*AUX_STEPS*AUX_CHANNELS+s;
       if ((activation[bit/8] & 1<<(bit%8)) != 0) {
         checkbox[pi].activate(s);
       } else {
@@ -438,8 +439,8 @@ void setCheckboxes() {
 
 void getCheckboxes() {
   for (int pi=0; pi<CHECKBOXITEMS; pi++) {
-    for (int s=0; s<(3*AUX_CHANNELS); s++) {
-      int bit = pi*3*AUX_CHANNELS+s;
+    for (int s=0; s<(AUX_STEPS*AUX_CHANNELS); s++) {
+      int bit = pi*AUX_STEPS*AUX_CHANNELS+s;
       if (checkbox[pi].getState(s)) {
         activation[bit/8] |= 1<<(bit%8);
       } else {
@@ -571,7 +572,7 @@ public void evaluateCommand(byte cmd, int dataSize) {
         updateModelMSP_SET_PID();
         break;
     case MSP_BOX:
-	activation = new int[(CHECKBOXITEMS*AUX_CHANNELS*3+7)/8];
+	activation = new int[(CHECKBOXITEMS*AUX_CHANNELS*AUX_STEPS+7)/8];
         for( i=0;i<activation.length;i++) {
           activation[i] = read8();
         }
@@ -579,9 +580,10 @@ public void evaluateCommand(byte cmd, int dataSize) {
         break;
     case MSP_AUX_COUNT:
 	AUX_CHANNELS = read8();
+	AUX_STEPS = read8();
 	break;
     case MSP_BOXNAMES:
-        create_checkboxes(AUX_CHANNELS, new String(inBuf, 0, dataSize).split(";"));
+        create_checkboxes(AUX_CHANNELS, AUX_STEPS, new String(inBuf, 0, dataSize).split(";"));
         break;
     case MSP_PIDNAMES:
         /* TODO create GUI elements from this message */
