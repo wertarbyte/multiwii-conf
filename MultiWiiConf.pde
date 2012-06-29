@@ -326,7 +326,7 @@ private static final int
   MSP_MOTOR_PINS           =115,
   MSP_BOXNAMES             =116,
   MSP_PIDNAMES             =117,
-  MSP_HEADING              =118,
+  MSP_HEADING              =125,
 
   MSP_SET_RAW_RC           =200,
   MSP_SET_RAW_GPS          =201,
