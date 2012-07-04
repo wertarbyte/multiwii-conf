@@ -329,6 +329,7 @@ private static final int
   MSP_BOXNAMES             =116,
   MSP_PIDNAMES             =117,
   MSP_AUX_COUNT            =119,
+  MSP_AUX                  =120,
   MSP_HEADING              =125,
 
   MSP_SET_RAW_RC           =200,
@@ -340,6 +341,8 @@ private static final int
   MSP_MAG_CALIBRATION      =206,
   MSP_SET_MISC             =207,
   MSP_RESET_CONF           =208,
+
+  MSP_SET_AUX              =210,
 
   MSP_EEPROM_WRITE         =250,
 
@@ -571,7 +574,7 @@ public void evaluateCommand(byte cmd, int dataSize) {
         }
         updateModelMSP_SET_PID();
         break;
-    case MSP_BOX:
+    case MSP_AUX:
 	activation = new int[(CHECKBOXITEMS*AUX_CHANNELS*AUX_STEPS+7)/8];
         for( i=0;i<activation.length;i++) {
           activation[i] = read8();
@@ -641,7 +644,7 @@ void draw() {
     }
     if (toggleRead) {
       toggleRead=false;
-      int[] requests = {MSP_AUX_COUNT, MSP_BOXNAMES, MSP_PIDNAMES, MSP_RC_TUNING, MSP_PID, MSP_BOX, MSP_MISC };
+      int[] requests = {MSP_AUX_COUNT, MSP_BOXNAMES, MSP_PIDNAMES, MSP_RC_TUNING, MSP_PID, MSP_AUX, MSP_MISC };
       sendRequestMSP(requestMSP(requests));
       buttonWRITE.setColorBackground(green_);
     }
@@ -694,13 +697,13 @@ void draw() {
       }
       sendRequestMSP(requestMSP(MSP_SET_PID,payload.toArray(new Character[payload.size()])));
 
-      // MSP_SET_BOX
+      // MSP_SET_AUX
       payload = new ArrayList<Character>();
       getCheckboxes();
       for(i=0;i<activation.length;i++) {
         payload.add(char(activation[i] & 0xFF));
       }
-      sendRequestMSP(requestMSP(MSP_SET_BOX,payload.toArray(new Character[payload.size()])));
+      sendRequestMSP(requestMSP(MSP_SET_AUX,payload.toArray(new Character[payload.size()])));
      
       
       // MSP_SET_MISC
