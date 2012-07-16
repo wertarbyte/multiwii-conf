@@ -427,10 +427,10 @@ public void evaluateCommand(byte cmd, int dataSize) {
   int icmd = (int)(cmd&0xFF);
   switch(icmd) {
     case MSP_IDENT:
-	version = read8();
-	multiType = read8();
-	read8(); // MSP version
-	read32();// capability
+        version = read8();
+        multiType = read8();
+        read8(); // MSP version
+        read32();// capability
         break;
     case MSP_STATUS:
         cycleTime = read16();
@@ -457,7 +457,7 @@ public void evaluateCommand(byte cmd, int dataSize) {
         rcRoll = read16();rcPitch = read16();rcYaw = read16();rcThrottle = read16();    
         rcAUX1 = read16();rcAUX2 = read16();rcAUX3 = read16();rcAUX4 = read16(); break;
     case MSP_RAW_GPS:
-        GPS_fix = read8();
+        GPS_fix = read8();println(dataSize);
         GPS_numSat = read8();
         GPS_latitude = read32();
         GPS_longitude = read32();
@@ -735,10 +735,11 @@ void draw() {
         /* compare calculated and transferred checksum */
         if ((checksum&0xFF) == (c&0xFF)) {
           if (err_rcvd) {
-            //System.err.println("Copter did not understand request type "+err_rcvd);
+            //System.err.println("Copter did not understand request type "+c);
+          } else {
+            /* we got a valid response packet, evaluate it */
+            evaluateCommand(cmd, (int)dataSize);
           }
-          /* we got a valid response packet, evaluate it */
-          evaluateCommand(cmd, (int)dataSize);
         } else {
           System.out.println("invalid checksum for command "+((int)(cmd&0xFF))+": "+(checksum&0xFF)+" expected, got "+(int)(c&0xFF));
           System.out.print("<"+(cmd&0xFF)+" "+(dataSize&0xFF)+"> {");
@@ -1210,6 +1211,7 @@ void draw() {
     val = rccommand*70/1000;
     point(xSens2+i,ySens2+(70-val)*3.5/7);
   }
+  line(xSens2+(max(1100,rcThrottle)-1100)*70/900,ySens2+25,xSens2+(max(1100,rcThrottle)-1100)*70/900,ySens2+35);
 
   fill(255);
   textFont(font15);    
@@ -1344,10 +1346,34 @@ public void bSAVE() {
   updateModel();
   SwingUtilities.invokeLater(new Runnable(){
     public void run() {
-      final JFileChooser fc = new JFileChooser();
+     final JFileChooser fc = new JFileChooser() {
+
+        private static final long serialVersionUID = 7919427933588163126L;
+
+        public void approveSelection() {
+            File f = getSelectedFile();
+            if (f.exists() && getDialogType() == SAVE_DIALOG) {
+                int result = JOptionPane.showConfirmDialog(this,
+                        "The file exists, overwrite?", "Existing file",
+                        JOptionPane.YES_NO_CANCEL_OPTION);
+                switch (result) {
+                case JOptionPane.YES_OPTION:
+                    super.approveSelection();
+                    return;
+                case JOptionPane.CANCEL_OPTION:
+                    cancelSelection();
+                    return;
+                default:
+                    return;
+                }
+            }
+            super.approveSelection();
+        }
+    };
+
       fc.setDialogType(JFileChooser.SAVE_DIALOG);
       fc.setFileFilter(new MwiFileFilter());
-      int returnVal = fc.showOpenDialog(null);
+      int returnVal = fc.showSaveDialog(null);
       if (returnVal == JFileChooser.APPROVE_OPTION) {
         File file = fc.getSelectedFile();
         
